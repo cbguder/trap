@@ -5,7 +5,7 @@ import os.path
 from lib.region import Region
 from traceparser import TraceParser
 
-REGION = Region(1050, 0, 900, 110)
+REGION = Region(1350, 0, 300, 110)
 SIMULATION_TIME = 60.0
 
 def main():
@@ -32,6 +32,7 @@ def analyze(f):
 
 	for node in nodes:
 		enter, exit = node.intersect(REGION)
+
 		if enter != None:
 			vr[enter] = vr.get(enter, 0) + 1
 			vr[exit] = vr.get(exit, 0) - 1

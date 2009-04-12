@@ -31,15 +31,20 @@ class Node:
 			self.first_activity = packet.time
 
 	def intersect(self, region):
+		enter, exit = None, None
+
 		for m in self.movements:
 			intersection = intersect(m, region)
 			if intersection != None:
-				enter = m.time_for(intersection[0])
-				exit = m.time_for(intersection[1])
+				_enter = m.time_for(intersection[0])
+				_exit = m.time_for(intersection[1])
 
-				return (enter, exit)
+				if enter == None or _enter < enter:
+					enter = _enter
+				if exit == None or _exit > exit:
+					exit = _exit
 
-		return (None, None)
+		return (enter, exit)
 
 class Movement:
 	def __init__(self, line=None):
