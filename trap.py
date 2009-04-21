@@ -10,16 +10,14 @@ SIMULATION_TIME = 60.0
 
 def main():
 	if len(sys.argv) < 2:
-		print "USAGE: trap TRACEFILE"
+		print "USAGE: trap <TRACEFILES>"
 		sys.exit()
 
-	file = sys.argv[1]
-
-	with open(file) as f:
-		graph = analyze(f)
-
-	with open(file + '.region.gpi', 'w') as f:
-		plot(f, graph, file)
+	for file in sys.argv[1:]:
+		with open(file) as f:
+			graph = analyze(f)
+			with open(file + '.region.gpi', 'w') as f:
+				plot(f, graph, file)
 
 def analyze(f):
 	vr = {} # Vehicles in Region
