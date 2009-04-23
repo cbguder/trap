@@ -5,8 +5,9 @@ import os.path
 from lib.region import Region
 from traceparser import TraceParser
 
-REGION = Region(1350, 0, 300, 110)
+REGION = Region(550, 0, 300, 110)
 SIMULATION_TIME = 60.0
+TRUST = 1
 
 def main():
 	if len(sys.argv) < 2:
@@ -14,6 +15,7 @@ def main():
 		sys.exit()
 
 	for file in sys.argv[1:]:
+		print "Trapping %s..." % file
 		with open(file) as f:
 			graph = analyze(f)
 			with open(file + '.region.gpi', 'w') as f:
@@ -35,11 +37,12 @@ def analyze(f):
 			vr[enter] = vr.get(enter, 0) + 1
 			vr[exit] = vr.get(exit, 0) - 1
 
-			if node.active_at(enter):
+			if node.has_trust_at(enter, TRUST):
 				avr[enter] = avr.get(enter, 0) + 1
 				avr[exit] = avr.get(exit, 0) - 1
-			elif node.active_at(exit):
-				avr[node.first_activity] = avr.get(node.first_activity, 0) + 1
+			elif node.has_trust_at(exit, TRUST):
+				t_trust = node.packet_times[TRUST - 1]
+				avr[t_trust] = avr.get(t_trust, 0) + 1
 				avr[exit] = avr.get(exit, 0) - 1
 
 	times = sorted(list(set(vr.keys() + avr.keys())))
