@@ -24,28 +24,59 @@ def main():
 def analyze(f):
 	vr = {} # Vehicles in Region
 	avr = {} # Active Vehicles in Region
+	graph = {}
 
 	tp = TraceParser()
 	tp.parse(f)
 
 	nodes = tp.get_nodes()
+	vs_types = sorted(list(tp.vs_types))
 
+	analyze_intersections(nodes)
+	vr = analyze_vr(nodes)
+	vr_times = set(vr.keys())
+
+	for vs_type in vs_types:
+		avr[vs_type] = analyze_avr(nodes, vs_type)
+		times = vr_times.copy()
+		times.update(avr[vs_type].keys())
+		times = sorted(list(times))
+		graph[vs_type] = analyze_graph(times, vr, avr[vs_type])
+
+	return graph
+
+def analyze_intersections(nodes):
 	for node in nodes:
 		enter, exit = node.intersect(REGION)
+		node.enter = enter
+		node.exit = exit
 
-		if enter != None:
-			vr[enter] = vr.get(enter, 0) + 1
-			vr[exit] = vr.get(exit, 0) - 1
+def analyze_vr(nodes):
+	vr = {}
 
-			if node.has_trust_at(enter, TRUST):
-				avr[enter] = avr.get(enter, 0) + 1
-				avr[exit] = avr.get(exit, 0) - 1
-			elif node.has_trust_at(exit, TRUST):
-				t_trust = node.packet_times[TRUST - 1]
+	for node in nodes:
+		if node.enter != None:
+			vr[node.enter] = vr.get(node.enter, 0) + 1
+			vr[node.exit] = vr.get(node.exit, 0) - 1
+
+	return vr
+
+def analyze_avr(nodes, vs_type):
+	avr = {}
+
+	for node in nodes:
+		if node.enter != None:
+			if node.has_trust_at(node.enter, vs_type, TRUST):
+				avr[node.enter] = avr.get(node.enter, 0) + 1
+				avr[node.exit] = avr.get(node.exit, 0) - 1
+			elif node.has_trust_at(node.exit, vs_type, TRUST):
+				t_trust = node.packet_times[vs_type][TRUST - 1]
 				avr[t_trust] = avr.get(t_trust, 0) + 1
-				avr[exit] = avr.get(exit, 0) - 1
+				avr[node.exit] = avr.get(node.exit, 0) - 1
 
-	times = sorted(list(set(vr.keys() + avr.keys())))
+	return avr
+
+def analyze_graph(times, vr, avr):
 	graph = []
 	total = 0
 	active = 0
@@ -74,10 +105,15 @@ def plot(f, graph, file):
 	f.write("set ylabel 'Percentage'\n")
 	f.write("set xrange[0:]\n")
 	f.write("set yrange[0:]\n")
-	f.write("plot '-' t 'Aware Vehicles'\n")
 
-	for g in graph:
-		f.write('%(t)f %(percentage)f\n' % g)
+	keys = sorted(graph.keys())
+	plot_commands = ["'-' t 'Message %d'" % key for key in keys]
+	f.write("plot %s\n" % ', '.join(plot_commands))
+
+	for key in keys:
+		for g in graph[key]:
+			f.write('%(t)f %(percentage)f\n' % g)
+		f.write('e\n')
 
 if __name__ == '__main__':
 	main()

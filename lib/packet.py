@@ -1,3 +1,5 @@
+from region import CircularRegion
+
 class Packet:
 	def __init__(self, line=None):
 		if line != None:
@@ -29,3 +31,13 @@ class Packet:
 		self.size    = packet['Il']
 		self.flow_id = packet['If']
 		self.id      = packet['Ii']
+
+		if packet.has_key('Vt'):
+			self.vs_type = int(packet['Vt'])
+
+		if packet.has_key('Vc') and packet.has_key('Vr'):
+			center = packet['Vc'].split(',')
+			x = float(center[0])
+			y = float(center[1])
+			r = float(packet['Vr'])
+			self.region = CircularRegion(x, y, r)

@@ -4,7 +4,7 @@ from lib.packet import Packet
 class TraceParser:
 	def __init__(self):
 		self.nodes = {}
-		self.progress = 0.0
+		self.vs_types = set()
 
 	def get_nodes(self):
 		return self.nodes.values()
@@ -29,3 +29,6 @@ class TraceParser:
 					node.receive_packet(packet)
 				elif event_type == 's':
 					node.send_packet(packet)
+
+				if packet.type == 'VirtualSign':
+					self.vs_types.add(packet.vs_type)

@@ -5,7 +5,7 @@ class Node:
 	def __init__(self, id):
 		self.id = id
 		self.movements = []
-		self.packet_times = []
+		self.packet_times = {}
 
 	def position_at(self, time):
 		movement = None
@@ -19,18 +19,20 @@ class Node:
 		else:
 			return movement.position_at(time)
 
-	def active_at(self, time):
-		return self.has_trust_at(time, 1)
+	def active_at(self, time, vs_type):
+		return self.has_trust_at(time, vs_type, 1)
 
-	def has_trust_at(self, time, trust):
-		if len(self.packet_times) >= trust:
-			return self.packet_times[trust - 1] <= time
+	def has_trust_at(self, time, vs_type, trust):
+		if self.packet_times.has_key(vs_type) and len(self.packet_times[vs_type]) >= trust:
+			return self.packet_times[vs_type][trust - 1] <= time
 		else:
 			return False
 
 	def receive_packet(self, packet):
 		if packet.type == 'VirtualSign':
-			self.packet_times.append(packet.time)
+			if not self.packet_times.has_key(packet.vs_type):
+				self.packet_times[packet.vs_type] = []
+			self.packet_times[packet.vs_type].append(packet.time)
 
 	def send_packet(self, packet):
 		self.receive_packet(packet)

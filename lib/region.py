@@ -1,3 +1,5 @@
+from point import Point
+
 class Region:
 	def __init__(self, x, y, width, height):
 		self.x = float(x)
@@ -8,3 +10,11 @@ class Region:
 	def contains(self, p):
 		return self.x <= p.x <= self.x + self.width and \
 		       self.y <= p.y <= self.y + self.height
+
+class CircularRegion:
+	def __init__(self, x, y, r):
+		self.r = float(r)
+		self.center = Point(x, y)
+
+	def contains(self, p):
+		return p.distance_to(self.center) <= self.r
