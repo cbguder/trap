@@ -30,9 +30,10 @@ class Node:
 
 	def receive_packet(self, packet):
 		if packet.type == 'VirtualSign':
-			if not self.packet_times.has_key(packet.vs_type):
-				self.packet_times[packet.vs_type] = []
-			self.packet_times[packet.vs_type].append(packet.time)
+			if packet.region.contains(Point(packet.node_x, packet.node_y)):
+				if not self.packet_times.has_key(packet.vs_type):
+					self.packet_times[packet.vs_type] = []
+				self.packet_times[packet.vs_type].append(packet.time)
 
 	def send_packet(self, packet):
 		self.receive_packet(packet)
