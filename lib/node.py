@@ -6,6 +6,7 @@ class Node:
 		self.id = id
 		self.movements = []
 		self.packet_times = {}
+		self.type_times = []
 
 	def position_at(self, time):
 		movement = None
@@ -28,11 +29,23 @@ class Node:
 		else:
 			return False
 
+	def unique_types_at(self, time):
+		return len([t for t in self.type_times if t <= time])
+
+	def unique_types_when(self, types):
+		if types == 0:
+			return float('-inf')
+		elif len(self.type_times) >= types:
+			return self.type_times[types - 1]
+		else:
+			return float('inf')
+
 	def receive_packet(self, packet):
 		if packet.type == 'VirtualSign':
 			if packet.region.contains(Point(packet.node_x, packet.node_y)):
 				if not self.packet_times.has_key(packet.vs_type):
 					self.packet_times[packet.vs_type] = []
+					self.type_times.append(packet.time)
 				self.packet_times[packet.vs_type].append(packet.time)
 
 	def send_packet(self, packet):
