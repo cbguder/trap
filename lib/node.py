@@ -1,5 +1,4 @@
-from point import Point
-from util import interpolate, intersect
+from util import distance, interpolate, intersect
 
 class Node:
 	def __init__(self, id):
@@ -42,7 +41,7 @@ class Node:
 
 	def receive_packet(self, packet):
 		if packet.type == 'VirtualSign':
-			if packet.region.contains(Point(packet.node_x, packet.node_y)):
+			if packet.region.contains((packet.node_x, packet.node_y)):
 				if not self.packet_times.has_key(packet.vs_type):
 					self.packet_times[packet.vs_type] = []
 					self.type_times.append(packet.time)
@@ -69,8 +68,8 @@ class Node:
 
 class Movement:
 	def __init__(self, line=None):
-		self.src        = Point()
-		self.dest       = Point()
+		self.src        = (None,None)
+		self.dest       = (None,None)
 		self.src_time   = 0.0
 		self.speed      = 0.0
 		self.distance   = 0.0
@@ -85,17 +84,14 @@ class Movement:
 		l = line.split()
 		self.src_time   = float(l[1])
 		self.node_id    = int(l[2])
-		self.src.x      = float(l[3][1:-1])
-		self.src.y      = float(l[4][:-1])
-		self.src.z      = float(l[5][:-2])
-		self.dest.x     = float(l[6][1:-1])
-		self.dest.y     = float(l[7][:-2])
+		self.src        = (float(l[3][1:-1]), float(l[4][:-1]))
+		self.dest       = (float(l[6][1:-1]), float(l[7][:-2]))
 		self.speed      = float(l[8])
 
-		self.distance   = self.src.distance_to(self.dest)
+		self.distance   = distance(self.src, self.dest)
 		self.total_time = self.distance / self.speed
-		self.dx         = self.dest.x - self.src.x
-		self.dy         = self.dest.y - self.src.y
+		self.dx         = self.dest[0] - self.src[0]
+		self.dy         = self.dest[1] - self.src[1]
 
 	def position_at(self, time):
 		dt = time - self.src_time
@@ -107,5 +103,5 @@ class Movement:
 			return self.src
 
 	def time_for(self, p):
-		distance = self.src.distance_to(p)
-		return self.src_time + (distance / self.speed)
+		dist = distance(self.src, p)
+		return self.src_time + (dist / self.speed)

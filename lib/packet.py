@@ -12,25 +12,12 @@ class Packet:
 		for i in range(1, len(parts), 2):
 			packet[parts[i][1:]] = parts[i+1]
 
-		self.event_type = parts[0]
-		self.time       = float(packet['t'])
+		self.time = float(packet['t'])
+		self.type = packet['It']
 
-		self.node_id     = int(packet['Ni'])
-		self.node_x      = float(packet['Nx'])
-		self.node_y      = float(packet['Ny'])
-		self.node_z      = float(packet['Nz'])
-		self.node_energy = float(packet['Ne'])
-
-		self.trace_level = packet['Nl']
-		self.reason      = packet['Nw']
-
-		self.source      = packet['Is']
-		self.destination = packet['Id']
-
-		self.type    = packet['It']
-		self.size    = packet['Il']
-		self.flow_id = packet['If']
-		self.id      = packet['Ii']
+		self.node_id = int(packet['Ni'])
+		self.node_x = float(packet['Nx'])
+		self.node_y = float(packet['Ny'])
 
 		if packet.has_key('Vt'):
 			self.vs_type = int(packet['Vt'])

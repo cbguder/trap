@@ -1,20 +1,20 @@
-from point import Point
+from util import distance
 
 class Region:
 	def __init__(self, x, y, width, height):
-		self.x = float(x)
-		self.y = float(y)
-		self.width = float(width)
-		self.height = float(height)
+		self.x = x
+		self.y = y
+		self.width = width
+		self.height = height
 
 	def contains(self, p):
-		return self.x <= p.x <= self.x + self.width and \
-		       self.y <= p.y <= self.y + self.height
+		return self.x <= p[0] <= self.x + self.width and \
+		       self.y <= p[1] <= self.y + self.height
 
 class CircularRegion:
 	def __init__(self, x, y, r):
-		self.r = float(r)
-		self.center = Point(x, y)
+		self.r = r
+		self.center = (x, y)
 
 	def contains(self, p):
-		return p.distance_to(self.center) <= self.r
+		return distance(self.center, p) <= self.r

@@ -1,13 +1,18 @@
-from point import Point
+from math import sqrt
+
+def distance(a, b):
+	dx = a[0] - b[0]
+	dy = a[1] - b[1]
+	return sqrt(dx**2 + dy**2)
 
 def interpolate(a, b, ratio):
-	dx = b.x - a.x
-	dy = b.y - a.y
+	dx = b[0] - a[0]
+	dy = b[1] - a[1]
 
-	x = a.x + ratio * dx
-	y = a.y + ratio * dy
+	x = a[0] + ratio * dx
+	y = a[1] + ratio * dy
 
-	return Point(x, y)
+	return (x, y)
 
 # Cohen-Sutherland Algorithm
 def intersect(movement, region):
@@ -33,15 +38,15 @@ def intersect(movement, region):
 
 		return code
 
-	x0, y0 = movement.src.x, movement.src.y
-	x1, y1 = movement.dest.x, movement.dest.y
+	x0, y0 = movement.src[0], movement.src[1]
+	x1, y1 = movement.dest[0], movement.dest[1]
 
 	start_code = outcode(x0, y0)
 	end_code = outcode(x1, y1)
 
 	while True:
 		if start_code | end_code == 0:
-			return (Point(x0, y0), Point(x1, y1))
+			return ((x0, y0), (x1, y1))
 
 		if start_code & end_code != 0:
 			return None
