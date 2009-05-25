@@ -18,17 +18,14 @@ def main():
 	for file in sys.argv[1:]:
 		print "Trapping %s..." % file
 		with open(file) as f:
-			m_graph, t_graph = analyze(f)
-			with open(file + '.region.gpi', 'w') as f:
-				plot(f, m_graph, file)
+			graph = analyze(f)
 			with open(file + '.region.overall.gpi', 'w') as f:
-				plot(f, t_graph, file)
+				plot(f, graph, file)
 
 def analyze(f):
 	vr = {} # Vehicles in Region
 	avr = {} # Active Vehicles in Region
-	m_graph = {}
-	t_graph = {}
+	graph = {}
 
 	tp = TraceParser()
 	tp.parse(f)
@@ -40,23 +37,15 @@ def analyze(f):
 	vr = analyze_vr(nodes)
 	vr_times = set(vr.keys())
 
-	for vs_type in vs_types:
-		avr[vs_type] = analyze_avr(nodes, vs_type)
-		times = vr_times.copy()
-		times.update(avr[vs_type].keys())
-		times = sorted(list(times))
-		key = 'Message %d' % vs_type
-		m_graph[key] = analyze_graph(times, vr, avr[vs_type])
+	num_types = len(vs_types)
+	avr = analyze_num_types(nodes, num_types)
+	times = vr_times.copy()
+	times.update(avr.keys())
+	times = sorted(list(times))
+	key = '%d Messages' % num_types
+	graph[key] = analyze_graph(times, vr, avr)
 
-	for i in range(len(vs_types) + 1):
-		avr[i] = analyze_num_types(nodes, i)
-		times = vr_times.copy()
-		times.update(avr[i].keys())
-		times = sorted(list(times))
-		key = '%d Messages' % i
-		t_graph[key] = analyze_graph(times, vr, avr[i])
-
-	return m_graph, t_graph
+	return graph
 
 def analyze_intersections(nodes):
 	for node in nodes:
