@@ -4,23 +4,65 @@ import sys
 import math
 import os.path
 import cPickle
-from lib.region import Region
-from traceparser import TraceParser
 
-REGION = Region(550, 0, 300, 110)
-SIMULATION_TIME = 60.0
-TRUST = 1
+from copy import copy
+from optparse import Option, OptionParser, OptionValueError
+
+from lib.region import Region
+from lib.traceparser import TraceParser
+
+VERSION = 2.0
+
+def check_region(option, opt, value):
+	try:
+		(dimensions, position) = value.split('@')
+		(width, height) = dimensions.split('x')
+		(x, y) = position.split(',')
+
+		width = float(width)
+		height = float(height)
+		x = float(x)
+		y = float(y)
+
+		return (x, y, width, height)
+	except:
+		raise OptionValueError('option %s: invalid region: %r' % (opt, value))
+
+class TrapOption(Option):
+	TYPES = Option.TYPES + ('region',)
+	TYPE_CHECKER = copy(Option.TYPE_CHECKER)
+	TYPE_CHECKER['region'] = check_region
 
 def main():
-	if len(sys.argv) < 2:
-		print "USAGE: trap <TRACEFILES>"
-		sys.exit()
+	parser = OptionParser(usage='Usage: %prog [OPTION] FILE...',
+	                      version='%prog ' + '%.1f' % VERSION,
+	                      option_class=TrapOption)
+	parser.add_option('-o', '--output', help='output file suffix (default: .gpi)')
+	parser.add_option('-r', '--region', help='the region to inspect (required, WxH@X,Y)', type='region')
+	parser.add_option('-t', '--time', type='float', help='simulation time (default: 60 seconds)')
+	parser.add_option('-T', '--trust', type='int', help='required trust value (default: 1)')
+	parser.set_defaults(output='.gpi',
+	                    region=None,
+	                    time=60.0,
+	                    trust=1)
 
-	for file in sys.argv[1:]:
-		print "Trapping %s..." % file
-		trap(file)
+	options, args = parser.parse_args()
 
-def trap(file):
+	if options.region == None:
+		print 'trap: error: region is a required parameter'
+		parser.print_help()
+		sys.exit(1)
+
+	if len(args) < 1:
+		parser.print_help()
+		sys.exit(2)
+
+	for file in args:
+		if os.path.exists(file):
+			print "Trapping %s..." % file
+			trap(file, options)
+
+def trap(file, options):
 	if os.path.exists(file + '.pickle'):
 		with open(file + '.pickle') as f:
 			(nodes, vs_types) = cPickle.load(f)
@@ -35,16 +77,16 @@ def trap(file):
 		with open(file + '.pickle', 'wb') as f:
 			cPickle.dump((nodes, vs_types), f, cPickle.HIGHEST_PROTOCOL)
 
-	graph = analyze(nodes, vs_types)
-	with open(file + '.region.overall.gpi', 'w') as f:
+	graph = analyze(nodes, vs_types, options)
+	with open(file + options.output, 'w') as f:
 		plot(f, graph, file)
 
-def analyze(nodes, vs_types):
+def analyze(nodes, vs_types, options):
 	vr = {} # Vehicles in Region
 	avr = {} # Active Vehicles in Region
 	graph = {}
 
-	analyze_intersections(nodes)
+	analyze_intersections(nodes, options.region)
 	vr = analyze_vr(nodes)
 	vr_times = set(vr.keys())
 
@@ -54,13 +96,13 @@ def analyze(nodes, vs_types):
 	times.update(avr.keys())
 	times = sorted(list(times))
 	key = '%d Messages' % num_types
-	graph[key] = analyze_graph(times, vr, avr)
+	graph[key] = analyze_graph(times, vr, avr, options.time)
 
 	return graph
 
-def analyze_intersections(nodes):
+def analyze_intersections(nodes, region):
 	for node in nodes:
-		enter, exit = node.intersect(REGION)
+		enter, exit = node.intersect(region)
 		node.enter = enter
 		node.exit = exit
 
@@ -74,16 +116,16 @@ def analyze_vr(nodes):
 
 	return vr
 
-def analyze_avr(nodes, vs_type):
+def analyze_avr(nodes, vs_type, trust):
 	avr = {}
 
 	for node in nodes:
 		if node.enter != None:
-			if node.has_trust_at(node.enter, vs_type, TRUST):
+			if node.has_trust_at(node.enter, vs_type, trust):
 				avr[node.enter] = avr.get(node.enter, 0) + 1
 				avr[node.exit] = avr.get(node.exit, 0) - 1
-			elif node.has_trust_at(node.exit, vs_type, TRUST):
-				t_trust = node.packet_times[vs_type][TRUST - 1]
+			elif node.has_trust_at(node.exit, vs_type, trust):
+				t_trust = node.packet_times[vs_type][trust - 1]
 				avr[t_trust] = avr.get(t_trust, 0) + 1
 				avr[node.exit] = avr.get(node.exit, 0) - 1
 
@@ -111,13 +153,13 @@ def analyze_num_types(nodes, types):
 
 	return avr
 
-def analyze_graph(times, vr, avr):
+def analyze_graph(times, vr, avr, time):
 	graph = []
 	total = 0
 	active = 0
 
 	for t in times:
-		if t > SIMULATION_TIME:
+		if t > time:
 			break
 
 		if vr.has_key(t):

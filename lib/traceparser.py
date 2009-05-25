@@ -1,5 +1,5 @@
-from lib.node import Node, Movement
-from lib.packet import Packet
+from node import Node, Movement
+from packet import Packet
 
 class TraceParser:
 	def __init__(self):

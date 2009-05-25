@@ -18,10 +18,10 @@ def interpolate(a, b, ratio):
 def intersect(movement, region):
 	LEFT, RIGHT, BOTTOM, TOP = 1, 2, 4, 8
 
-	xmin = region.x
-	xmax = region.x + region.width
-	ymin = region.y
-	ymax = region.y + region.height
+	xmin = region[0]
+	xmax = region[0] + region[2]
+	ymin = region[1]
+	ymax = region[1] + region[3]
 
 	def outcode(x, y):
 		code = 0
