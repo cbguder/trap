@@ -3,6 +3,7 @@
 import sys
 import math
 import os.path
+import cPickle
 from lib.region import Region
 from traceparser import TraceParser
 
@@ -17,21 +18,31 @@ def main():
 
 	for file in sys.argv[1:]:
 		print "Trapping %s..." % file
-		with open(file) as f:
-			graph = analyze(f)
-			with open(file + '.region.overall.gpi', 'w') as f:
-				plot(f, graph, file)
+		trap(file)
 
-def analyze(f):
+def trap(file):
+	if os.path.exists(file + '.pickle'):
+		with open(file + '.pickle') as f:
+			(nodes, vs_types) = cPickle.load(f)
+	else:
+		with open(file) as f:
+			tp = TraceParser()
+			tp.parse(f)
+
+			nodes = tp.get_nodes()
+			vs_types = sorted(list(tp.vs_types))
+
+		with open(file + '.pickle', 'wb') as f:
+			cPickle.dump((nodes, vs_types), f, cPickle.HIGHEST_PROTOCOL)
+
+	graph = analyze(nodes, vs_types)
+	with open(file + '.region.overall.gpi', 'w') as f:
+		plot(f, graph, file)
+
+def analyze(nodes, vs_types):
 	vr = {} # Vehicles in Region
 	avr = {} # Active Vehicles in Region
 	graph = {}
-
-	tp = TraceParser()
-	tp.parse(f)
-
-	nodes = tp.get_nodes()
-	vs_types = sorted(list(tp.vs_types))
 
 	analyze_intersections(nodes)
 	vr = analyze_vr(nodes)
