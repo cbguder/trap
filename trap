@@ -37,10 +37,12 @@ def main():
 	parser = OptionParser(usage='Usage: %prog [OPTION] FILE...',
 	                      version='%prog ' + '%.1f' % VERSION,
 	                      option_class=TrapOption)
+
 	parser.add_option('-o', '--output', help='output file suffix (default: .gpi)')
 	parser.add_option('-r', '--region', help='the region to inspect (required, WxH@X,Y)', type='region')
 	parser.add_option('-t', '--time', type='float', help='simulation time (default: 60 seconds)')
 	parser.add_option('-T', '--trust', type='int', help='required trust value (default: 1)')
+
 	parser.set_defaults(output='.gpi',
 	                    region=None,
 	                    time=60.0,
@@ -58,7 +60,7 @@ def main():
 		sys.exit(2)
 
 	for file in args:
-		if os.path.exists(file):
+		if os.path.exists(file) or os.path.exists(file + '.pickle'):
 			print "Trapping %s..." % file
 			trap(file, options)
 
@@ -77,9 +79,13 @@ def trap(file, options):
 		with open(file + '.pickle', 'wb') as f:
 			cPickle.dump((nodes, vs_types), f, cPickle.HIGHEST_PROTOCOL)
 
-	graph = analyze(nodes, vs_types, options)
+	graph, delay_graph = analyze(nodes, vs_types, options)
+
 	with open(file + options.output, 'w') as f:
 		plot(f, graph, file)
+
+	with open(file + '.delay' + options.output, 'w') as f:
+		plot_delay(f, delay_graph, file)
 
 def analyze(nodes, vs_types, options):
 	vr = {} # Vehicles in Region
@@ -91,6 +97,7 @@ def analyze(nodes, vs_types, options):
 	vr_times = set(vr.keys())
 
 	num_types = len(vs_types)
+
 	avr = analyze_num_types(nodes, num_types)
 	times = vr_times.copy()
 	times.update(avr.keys())
@@ -98,7 +105,21 @@ def analyze(nodes, vs_types, options):
 	key = '%d Messages' % num_types
 	graph[key] = analyze_graph(times, vr, avr, options.time)
 
-	return graph
+	delay = analyze_delay(nodes, num_types, options.time)
+	delay_graph = analyze_delay_graph(delay)
+
+	total_delay = 0.0
+	total_vehicle = 0
+	for d in delay:
+		if d != float('inf'):
+			if d > 0.0:
+				total_delay += d
+			total_vehicle += 1
+	average_delay = total_delay / total_vehicle
+
+	print 'Average Delay: %.2fs (%f / %d)' % (average_delay, total_delay, total_vehicle)
+
+	return graph, delay_graph
 
 def analyze_intersections(nodes, region):
 	for node in nodes:
@@ -153,6 +174,18 @@ def analyze_num_types(nodes, types):
 
 	return avr
 
+def analyze_delay(nodes, types, time):
+	delays = []
+
+	for node in nodes:
+		if node.enter != None:
+			if node.enter < time - 10 and node.exit > 10:
+				t = node.unique_types_when(types)
+				delay = t - node.enter
+				delays.append(delay)
+
+	return delays
+
 def analyze_graph(times, vr, avr, time):
 	graph = []
 	total = 0
@@ -175,6 +208,37 @@ def analyze_graph(times, vr, avr, time):
 
 	return graph
 
+def analyze_delay_graph(delays):
+	graph = []
+
+	t_graph = {}
+	for delay in delays:
+		if delay == float('inf'):
+			delay = 'inf'
+		elif delay < 0:
+			delay = '<0'
+		else:
+			delay = int(delay) + 1
+
+		t_graph[delay] = t_graph.get(delay, 0) + 1
+
+	keys = sorted(t_graph.keys())
+
+	if '<0' in keys:
+		graph.append(('<0', t_graph['<0']))
+		keys.remove('<0')
+
+	prev_key = None
+	for key in keys:
+		if prev_key != None and type(key) == int:
+			for i in range(prev_key + 1, key):
+				graph.append((i, 0))
+		prev_key = key
+
+		graph.append((key, t_graph[key]))
+
+	return graph
+
 def plot(f, graph, file):
 	keys = sorted(graph.keys())
 	xrange = max([last_interesting_time(graph[key]) for key in keys])
@@ -185,6 +249,7 @@ def plot(f, graph, file):
 	f.write("set ylabel 'Percentage'\n")
 	f.write("set xrange[0:%d]\n" % math.ceil(xrange))
 	f.write("set yrange[0:1]\n")
+	f.write("set ytics 0.1\n")
 
 	plot_commands = ["'-' t '%s'" % key for key in keys]
 	f.write("plot %s\n" % ', '.join(plot_commands))
@@ -193,6 +258,19 @@ def plot(f, graph, file):
 		for g in graph[key]:
 			f.write('%f %f\n' % g)
 		f.write('e\n')
+
+def plot_delay(f, graph, file):
+	f.write("set title '%s Delays'\n" % os.path.basename(file))
+	f.write("set style data histograms\n")
+	f.write("set style fill solid\n")
+	f.write("set xlabel 'Delay (s)'\n")
+	f.write("set ylabel 'Vehicles'\n")
+	f.write("set nokey\n")
+	f.write("plot '-' using 2:xtic(1)\n")
+
+	for g in graph:
+		f.write('%s %d\n' % g)
+	f.write('e\n')
 
 def last_interesting_time(g):
 	last_val = g[-1][1]
