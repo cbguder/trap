@@ -14,19 +14,25 @@ from lib.traceparser import TraceParser
 VERSION = 2.0
 
 def check_region(option, opt, value):
-	try:
-		(dimensions, position) = value.split('@')
-		(width, height) = dimensions.split('x')
-		(x, y) = position.split(',')
+	values = value.split('+')
+	regions = []
 
-		width = float(width)
-		height = float(height)
-		x = float(x)
-		y = float(y)
+	for value in values:
+		try:
+			(dimensions, position) = value.split('@')
+			(width, height) = dimensions.split('x')
+			(x, y) = position.split(',')
 
-		return (x, y, width, height)
-	except:
-		raise OptionValueError('option %s: invalid region: %r' % (opt, value))
+			width = float(width)
+			height = float(height)
+			x = float(x)
+			y = float(y)
+
+			regions.append((x, y, width, height))
+		except:
+			raise OptionValueError('option %s: invalid region: %r' % (opt, value))
+
+	return regions
 
 class TrapOption(Option):
 	TYPES = Option.TYPES + ('region',)
@@ -121,11 +127,14 @@ def analyze(nodes, vs_types, options):
 
 	return graph, delay_graph
 
-def analyze_intersections(nodes, region):
+def analyze_intersections(nodes, regions):
 	for node in nodes:
-		enter, exit = node.intersect(region)
-		node.enter = enter
-		node.exit = exit
+		for region in regions:
+			enter, exit = node.intersect(region)
+			node.enter = enter
+			node.exit = exit
+			if enter != None:
+				break
 
 def analyze_vr(nodes):
 	vr = {}
