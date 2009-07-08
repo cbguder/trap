@@ -265,7 +265,7 @@ def plot(f, graph, file):
 
 	for key in keys:
 		for g in graph[key]:
-			f.write('%f %f\n' % g)
+			f.write('%s %s\n' % g)
 		f.write('e\n')
 
 def plot_delay(f, graph, file):
